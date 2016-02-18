@@ -18,8 +18,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
-
-    private static final String TAG = MainActivity.class.getSimpleName();
     private List<ContactBean> list = new ArrayList<>();
     private ContactAdapter adapter;
     private ListView listview;
@@ -40,7 +38,7 @@ public class MainActivity extends AppCompatActivity {
         makeCallBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (HasPermissionsToMakePhoneCall()) {
+                if (hasPermissionsToMakePhoneCall()) {
                     new PhoneCall(MainActivity.this).makePhoneCall("8848032919");
                 } else {
                     requestPhoneCallPermission();
@@ -51,8 +49,8 @@ public class MainActivity extends AppCompatActivity {
         dialPadCallBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (HasPermissionsToMakePhoneCall()) {
-                    new PhoneCall(MainActivity.this).getDialPadPhoneNumber("8848032919");
+                if (hasPermissionsToMakePhoneCall()) {
+                    new PhoneCall(MainActivity.this).showPhoneNumberOnDialPad("8848032919");
                 } else {
                     requestPhoneCallPermission();
                 }
@@ -63,8 +61,9 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
 
-                if (HasPermissionsToReadContacts()) {
-                    list = new MobileContacts(MainActivity.this).fetchContacts();
+                if (hasPermissionsToReadContacts()) {
+                     list = new MobileContacts(MainActivity.this).fetchContacts();
+                    //list = new SIMContacts(MainActivity.this).getSIMContacts();
                 } else {
                     requestReadContactsPermission();
                 }
@@ -94,10 +93,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void requestResultPhoneCallPermission() {
-        ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.CALL_PHONE}, 100);
+        try {
+            ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.CALL_PHONE}, Constants.CALL_PHONE_REQUEST);
+        } catch (IllegalArgumentException e) {
+            Log.i("RequestCallPermission", "IllegalArgumentException: " + e);
+        }
     }
 
-    private boolean HasPermissionsToMakePhoneCall() {
+    private boolean hasPermissionsToMakePhoneCall() {
         return ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED;
     }
 
@@ -112,24 +115,34 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void requestResultContactPermission() {
-        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_CONTACTS}, 123);
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_CONTACTS}, Constants.READ_CONTACTS_PERMISSION_REQUEST);
     }
 
-    private boolean HasPermissionsToReadContacts() {
+    private boolean hasPermissionsToReadContacts() {
         return ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED;
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == 123
+        if (requestCode == Constants.READ_CONTACTS_PERMISSION_REQUEST
                 && grantResults.length > 0
                 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
             Toast.makeText(MainActivity.this, " ReadContacts Permission Granted", Toast.LENGTH_SHORT).show();
-        } else if (requestCode == 100
+
+            // perform the action fetching contact here..like loading the contact list here
+
+        } else if (requestCode == Constants.CALL_PHONE_REQUEST
                 && grantResults.length > 0
                 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
             Toast.makeText(MainActivity.this, " MakeCall Permission Granted", Toast.LENGTH_SHORT).show();
+
+            if (PhoneCall.getRequestType() == Constants.PhoneCall.MAKE_CALL) {
+                // perform actions here for directly placing the call...
+
+            } else if (PhoneCall.getRequestType() == Constants.PhoneCall.DIAL_PAD_CALL) {
+                // perform actions here for placing the call on to the dial pad first..
+            }
         }
 
     }
